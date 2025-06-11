@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import SearchModal from '../components/SearchModal';
 import { useAllNews } from '../hooks/useAllNews';
+import { logError, addBreadcrumb } from '../utils/sentry';
 
 interface WeatherData {
   location: {
@@ -50,20 +51,29 @@ const WeatherPage: React.FC = () => {
     const fetchWeather = async () => {
       try {
         setLoading(true);
+        addBreadcrumb('Fetching weather data', 'weather_api');
+        
         const response = await fetch(
           'http://api.weatherapi.com/v1/current.json?key=fb6b416878414b1692b100814250806&q=Moscow&aqi=no'
         );
         
         if (!response.ok) {
-          throw new Error('Не удалось получить данные о погоде');
+          throw new Error(`Weather API Error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
         setWeather(data);
         setError(null);
+        
+        addBreadcrumb('Weather data loaded successfully', 'weather_success');
       } catch (err) {
-        setError('Ошибка загрузки данных о погоде');
-        console.error('Weather API Error:', err);
+        const errorMessage = 'Ошибка загрузки данных о погоде';
+        setError(errorMessage);
+        
+        logError(err as Error, { 
+          context: 'fetchWeather',
+          page: 'WeatherPage'
+        });
       } finally {
         setLoading(false);
       }
@@ -73,22 +83,38 @@ const WeatherPage: React.FC = () => {
   }, []);
 
   const getWeatherIcon = (condition: string) => {
-    const lowerCondition = condition.toLowerCase();
-    if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) {
-      return <CloudRain className="h-16 w-16 text-blue-400" />;
-    } else if (lowerCondition.includes('cloud') || lowerCondition.includes('облач')) {
-      return <Cloud className="h-16 w-16 text-gray-400" />;
-    } else {
+    try {
+      const lowerCondition = condition.toLowerCase();
+      if (lowerCondition.includes('rain') || lowerCondition.includes('дождь')) {
+        return <CloudRain className="h-16 w-16 text-blue-400" />;
+      } else if (lowerCondition.includes('cloud') || lowerCondition.includes('облач')) {
+        return <Cloud className="h-16 w-16 text-gray-400" />;
+      } else {
+        return <Sun className="h-16 w-16 text-yellow-400" />;
+      }
+    } catch (error) {
+      logError(error as Error, { 
+        context: 'getWeatherIcon', 
+        condition 
+      });
       return <Sun className="h-16 w-16 text-yellow-400" />;
     }
   };
 
   const scrollToContacts = () => {
-    const contactsElement = document.getElementById('contacts');
-    if (contactsElement) {
-      contactsElement.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
+    try {
+      const contactsElement = document.getElementById('contacts');
+      if (contactsElement) {
+        contactsElement.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+        addBreadcrumb('Scrolled to contacts section', 'user_interaction');
+      }
+    } catch (error) {
+      logError(error as Error, { 
+        context: 'scrollToContacts',
+        page: 'WeatherPage'
       });
     }
   };
