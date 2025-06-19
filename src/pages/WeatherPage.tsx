@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import SearchModal from '../components/SearchModal';
 import { useAllNews } from '../hooks/useAllNews';
-import { logError, addBreadcrumb } from '../utils/sentry';
 
 interface WeatherData {
   location: {
@@ -51,7 +50,6 @@ const WeatherPage: React.FC = () => {
     const fetchWeather = async () => {
       try {
         setLoading(true);
-        addBreadcrumb('Fetching weather data', 'weather_api');
         
         const response = await fetch(
           'http://api.weatherapi.com/v1/current.json?key=fb6b416878414b1692b100814250806&q=Moscow&aqi=no'
@@ -64,16 +62,10 @@ const WeatherPage: React.FC = () => {
         const data = await response.json();
         setWeather(data);
         setError(null);
-        
-        addBreadcrumb('Weather data loaded successfully', 'weather_success');
       } catch (err) {
         const errorMessage = 'Ошибка загрузки данных о погоде';
         setError(errorMessage);
-        
-        logError(err as Error, { 
-          context: 'fetchWeather',
-          page: 'WeatherPage'
-        });
+        console.error('Error fetching weather:', err);
       } finally {
         setLoading(false);
       }
@@ -93,10 +85,7 @@ const WeatherPage: React.FC = () => {
         return <Sun className="h-16 w-16 text-yellow-400" />;
       }
     } catch (error) {
-      logError(error as Error, { 
-        context: 'getWeatherIcon', 
-        condition 
-      });
+      console.error('Error getting weather icon:', error);
       return <Sun className="h-16 w-16 text-yellow-400" />;
     }
   };
@@ -109,13 +98,9 @@ const WeatherPage: React.FC = () => {
           behavior: 'smooth',
           block: 'start'
         });
-        addBreadcrumb('Scrolled to contacts section', 'user_interaction');
       }
     } catch (error) {
-      logError(error as Error, { 
-        context: 'scrollToContacts',
-        page: 'WeatherPage'
-      });
+      console.error('Error scrolling to contacts:', error);
     }
   };
 

@@ -19,16 +19,13 @@ export interface NewsResponse {
   articles: NewsArticle[];
 }
 
-import { logError, logWarning, addBreadcrumb } from '../utils/sentry';
-
 // Конфигурация API
 const API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 const BASE_URL = import.meta.env.VITE_NEWS_API_BASE_URL;
 
 // Проверка наличия API ключа
 if (!API_KEY) {
-  const error = new Error('NewsAPI ключ не найден в переменных окружения');
-  logError(error, { context: 'newsApi_initialization' });
+  console.error('NewsAPI ключ не найден в переменных окружения');
 }
 
 // Базовая функция для запросов к NewsAPI
@@ -41,33 +38,20 @@ async function fetchNews(endpoint: string, params: Record<string, string> = {}):
     url.searchParams.append(key, value);
   });
 
-  addBreadcrumb(`Fetching news from ${endpoint}`, 'api_request');
-
   try {
     const response = await fetch(url.toString());
     
     if (!response.ok) {
       const error = new Error(`NewsAPI Error: ${response.status} ${response.statusText}`);
-      logError(error, { 
-        endpoint, 
-        params, 
-        status: response.status,
-        statusText: response.statusText 
-      });
+      console.error('NewsAPI Error:', error);
       throw error;
     }
     
     const data: NewsResponse = await response.json();
     
-    addBreadcrumb(`Successfully fetched ${data.articles.length} articles`, 'api_success');
-    
     return data;
   } catch (error) {
-    logError(error as Error, { 
-      context: 'fetchNews', 
-      endpoint, 
-      params 
-    });
+    console.error('Error fetching news:', error);
     throw error;
   }
 }
@@ -75,8 +59,6 @@ async function fetchNews(endpoint: string, params: Record<string, string> = {}):
 // Получение главных новостей (технологии)
 export async function getTechNews(pageSize: number = 6): Promise<NewsArticle[]> {
   try {
-    addBreadcrumb('Fetching tech news', 'news_category');
-    
     const data = await fetchNews('everything', {
       q: 'технологии OR искусственный интеллект OR квантовые вычисления OR кибербезопасность OR инновации',
       language: 'ru',
@@ -91,18 +73,12 @@ export async function getTechNews(pageSize: number = 6): Promise<NewsArticle[]> 
     );
 
     if (filteredArticles.length === 0) {
-      logWarning('No tech news articles found after filtering', { 
-        originalCount: data.articles.length,
-        pageSize 
-      });
+      console.warn('No tech news articles found after filtering');
     }
     
     return filteredArticles;
   } catch (error) {
-    logError(error as Error, { 
-      context: 'getTechNews', 
-      pageSize 
-    });
+    console.error('Error fetching tech news:', error);
     return [];
   }
 }
@@ -110,8 +86,6 @@ export async function getTechNews(pageSize: number = 6): Promise<NewsArticle[]> 
 // Получение текстовых новостей (наука и технологии)
 export async function getScienceNews(pageSize: number = 5): Promise<NewsArticle[]> {
   try {
-    addBreadcrumb('Fetching science news', 'news_category');
-    
     const data = await fetchNews('everything', {
       q: 'наука OR исследования OR открытие OR прорыв OR научные достижения OR образование',
       language: 'ru',
@@ -126,18 +100,12 @@ export async function getScienceNews(pageSize: number = 5): Promise<NewsArticle[
     );
 
     if (filteredArticles.length === 0) {
-      logWarning('No science news articles found after filtering', { 
-        originalCount: data.articles.length,
-        pageSize 
-      });
+      console.warn('No science news articles found after filtering');
     }
     
     return filteredArticles;
   } catch (error) {
-    logError(error as Error, { 
-      context: 'getScienceNews', 
-      pageSize 
-    });
+    console.error('Error fetching science news:', error);
     return [];
   }
 }
@@ -145,8 +113,6 @@ export async function getScienceNews(pageSize: number = 5): Promise<NewsArticle[
 // Получение важных новостей для карусели
 export async function getImportantNews(pageSize: number = 5): Promise<NewsArticle[]> {
   try {
-    addBreadcrumb('Fetching important news', 'news_category');
-    
     const data = await fetchNews('top-headlines', {
       country: 'ru',
       pageSize: pageSize.toString()
@@ -159,18 +125,12 @@ export async function getImportantNews(pageSize: number = 5): Promise<NewsArticl
     );
 
     if (filteredArticles.length === 0) {
-      logWarning('No important news articles found after filtering', { 
-        originalCount: data.articles.length,
-        pageSize 
-      });
+      console.warn('No important news articles found after filtering');
     }
     
     return filteredArticles;
   } catch (error) {
-    logError(error as Error, { 
-      context: 'getImportantNews', 
-      pageSize 
-    });
+    console.error('Error fetching important news:', error);
     return [];
   }
 }
@@ -191,10 +151,7 @@ export function formatTimeAgo(dateString: string): string {
       return `${diffInDays} ${diffInDays === 1 ? 'день' : diffInDays < 5 ? 'дня' : 'дней'} назад`;
     }
   } catch (error) {
-    logError(error as Error, { 
-      context: 'formatTimeAgo', 
-      dateString 
-    });
+    console.error('Error formatting time:', error);
     return 'Неизвестно';
   }
 }
@@ -223,10 +180,7 @@ export function getNewsCategory(article: NewsArticle): string {
       return 'ТЕХНОЛОГИИ';
     }
   } catch (error) {
-    logError(error as Error, { 
-      context: 'getNewsCategory', 
-      articleTitle: article.title 
-    });
+    console.error('Error getting news category:', error);
     return 'ТЕХНОЛОГИИ';
   }
 }
